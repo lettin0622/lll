@@ -20,6 +20,11 @@ const questions = [
     question: "淡江大學的全名是?",
     options: ["淡江大學學校財團法人淡江大學", "淡江大學校"],
     answer: 0 // 回答一
+  },
+  {
+    question: "教科系的全名是?",
+    options: ["教育科學系", "教育科技系"],
+    answer: 1 // 教育科技系
   }
 ];
 
@@ -29,6 +34,7 @@ let currentQuestion = 0;
 let gameState = "intro"; // intro, countdown, play
 let countdownStart = 0;
 let countdownNum = 3;
+let firstHintShown = false; // 只顯示一次提示語
 
 function preload() {
   // Initialize HandPose model with flipped video input
@@ -59,14 +65,26 @@ function setup() {
   // 狀態初始化
   gameState = "intro";
   countdownStart = millis();
+  firstHintShown = false;
 }
 
 function initFishes() {
+  // 計算視訊顯示區域
+  let titleH = 56 + 30;
+  let vidW = windowWidth * 0.7;
+  let vidH = video ? video.height * (vidW / video.width) : windowHeight * 0.7;
+  if (vidH > windowHeight - titleH - 40) {
+    vidH = windowHeight - titleH - 40;
+    vidW = video ? video.width * (vidH / video.height) : windowWidth * 0.7;
+  }
+  let vidX = (windowWidth - vidW) / 2;
+  let vidY = titleH + ((windowHeight - titleH) - vidH) / 2;
+
   fishes = [];
   for (let i = 0; i < 2; i++) {
     fishes.push({
-      x: random(width * 0.1, width * 0.9),
-      y: random(height * 0.2, height * 0.8),
+      x: random(vidX, vidX + vidW - 120),
+      y: random(vidY, vidY + vidH - 80),
       w: 120,
       h: 80,
       vx: random([-1, 1]) * random(0.5, 1),
@@ -79,6 +97,7 @@ function initFishes() {
 
 function windowResized() {
   resizeCanvas(windowWidth, windowHeight);
+  initFishes();
 }
 
 function draw() {
@@ -92,7 +111,7 @@ function draw() {
   text('ＴＫＵＥＴ小測驗', width / 2, 30);
 
   // 狀態：intro
-  if (gameState === "intro") {
+  if (gameState === "intro" && !firstHintShown) {
     textSize(48);
     fill(0);
     text("請讓貓咪吃到正確的魚\n倒數三秒遊戲開始！", width / 2, height / 2 - 40);
@@ -101,6 +120,7 @@ function draw() {
       gameState = "countdown";
       countdownStart = millis();
       countdownNum = 3;
+      firstHintShown = true;
     }
     return;
   }
@@ -140,16 +160,30 @@ function draw() {
 
   image(video, vidX, vidY, vidW, vidH);
 
-  // 更新並顯示魚
+  // 更新並顯示魚（只在視訊框內移動）
   textSize(40);
   for (let i = 0; i < fishes.length; i++) {
     let fish = fishes[i];
     // 移動
     fish.x += fish.vx;
     fish.y += fish.vy;
-    // 邊界反彈
-    if (fish.x < 0 || fish.x > width - fish.w) fish.vx *= -1;
-    if (fish.y < titleH || fish.y > height - fish.h) fish.vy *= -1;
+    // 視訊框內邊界反彈
+    if (fish.x < vidX) {
+      fish.x = vidX;
+      fish.vx *= -1;
+    }
+    if (fish.x > vidX + vidW - fish.w) {
+      fish.x = vidX + vidW - fish.w;
+      fish.vx *= -1;
+    }
+    if (fish.y < vidY) {
+      fish.y = vidY;
+      fish.vy *= -1;
+    }
+    if (fish.y > vidY + vidH - fish.h) {
+      fish.y = vidY + vidH - fish.h;
+      fish.vy *= -1;
+    }
     // 顯示
     image(fishImg, fish.x, fish.y, fish.w, fish.h);
 
@@ -210,7 +244,7 @@ function draw() {
               currentQuestion = 0; // 或可改為結束
             }
             initFishes();
-            gameState = "intro";
+            gameState = "countdown";
             countdownStart = millis();
           }, 1500);
         } else {
