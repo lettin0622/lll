@@ -6,9 +6,24 @@ let handPose;
 let hands = [];
 let catImg, fishImg;
 let fishes = [];
-let gameClear = false;
-let correctFishIndex = 1; // 0:文學院, 1:教育學院
 let score = false;
+let wrong = false;
+
+// 題庫
+const questions = [
+  {
+    question: "淡江教科系隸屬?",
+    options: ["文學院", "教育學院"],
+    answer: 1 // 教育學院
+  },
+  {
+    question: "淡江大學的全名是?",
+    options: ["淡江大學學校財團法人淡江大學", "淡江大學校"],
+    answer: 0 // 回答一
+  }
+];
+
+let currentQuestion = 0;
 
 function preload() {
   // Initialize HandPose model with flipped video input
@@ -34,16 +49,23 @@ function setup() {
   handPose.detectStart(video, gotHands);
 
   // 初始化兩隻魚的位置與速度
+  initFishes();
+}
+
+function initFishes() {
+  fishes = [];
   for (let i = 0; i < 2; i++) {
     fishes.push({
       x: random(width * 0.1, width * 0.9),
       y: random(height * 0.2, height * 0.8),
-      w: 50, // 魚的寬度（小一點）
-      h: 32, // 魚的高度（小一點）
+      w: 120, // 魚大一點
+      h: 80,
       vx: random([-1, 1]) * random(0.5, 1),
       vy: random([-1, 1]) * random(0.5, 1)
     });
   }
+  score = false;
+  wrong = false;
 }
 
 function windowResized() {
@@ -54,14 +76,14 @@ function draw() {
   // 設定淺藍色底色
   background(180, 220, 255);
 
-  // 畫面最上方加標題
+  // 畫面最上方加大標題
   textAlign(CENTER, TOP);
-  textSize(32);
+  textSize(56);
   fill(0, 60, 120);
-  text('ＴＫＵＥＴ小測驗', width / 2, 20);
+  text('ＴＫＵＥＴ小測驗', width / 2, 30);
 
   // 計算標題高度與間距
-  let titleH = 32 + 20; // 字高+間距
+  let titleH = 56 + 30; // 字高+間距
 
   // 計算視訊顯示區域（約視窗 70%，置中，且不與標題碰撞）
   let vidW = width * 0.7;
@@ -76,7 +98,7 @@ function draw() {
   image(video, vidX, vidY, vidW, vidH);
 
   // 更新並顯示魚
-  textSize(20);
+  textSize(40);
   for (let i = 0; i < fishes.length; i++) {
     let fish = fishes[i];
     // 移動
@@ -88,17 +110,17 @@ function draw() {
     // 顯示
     image(fishImg, fish.x, fish.y, fish.w, fish.h);
 
-    // 在魚頭上加標籤
+    // 在魚頭上加大標籤
     fill(255);
     stroke(0);
-    strokeWeight(2);
-    let label = i === 0 ? "文學院" : "教育學院";
+    strokeWeight(4);
+    let label = questions[currentQuestion].options[i];
     textAlign(CENTER, BOTTOM);
-    text(label, fish.x + fish.w / 2, fish.y - 5);
+    text(label, fish.x + fish.w / 2, fish.y - 10);
     noStroke();
   }
 
-  let catX = null, catY = null, catW = 80, catH = 80;
+  let catX = null, catY = null, catW = 160, catH = 160;
 
   // 只顯示兩隻手的食指指尖，並將cat.png跟著其中一隻手的食指
   if (hands.length > 0) {
@@ -115,18 +137,18 @@ function draw() {
           catY = y - catH / 2;
           image(catImg, catX, catY, catW, catH);
 
-          // 在貓頭上方顯示題目
+          // 在貓頭上方顯示大題目
           fill(0);
           noStroke();
-          textSize(24);
+          textSize(36);
           textAlign(CENTER, BOTTOM);
-          text("淡江教科系隸屬?", x, catY - 10);
+          text(questions[currentQuestion].question, x, catY - 20);
         }
       }
     }
   }
 
-  // 判斷cat.png是否碰到正確的fish.png
+  // 判斷cat.png是否碰到正確或錯誤的fish.png
   if (catX !== null && catY !== null && !score) {
     for (let i = 0; i < fishes.length; i++) {
       let fish = fishes[i];
@@ -136,8 +158,18 @@ function draw() {
         catY < fish.y + fish.h &&
         catY + catH > fish.y
       ) {
-        if (i === correctFishIndex) {
+        if (i === questions[currentQuestion].answer) {
           score = true;
+          wrong = false;
+          setTimeout(() => {
+            currentQuestion++;
+            if (currentQuestion >= questions.length) {
+              currentQuestion = 0; // 或可改為結束
+            }
+            initFishes();
+          }, 1500);
+        } else {
+          wrong = true;
         }
       }
     }
@@ -146,26 +178,54 @@ function draw() {
   // 顯示過關訊息與笑臉
   if (score) {
     fill(255, 200, 0);
-    textSize(48);
+    textSize(64);
     text('答對！', width / 2, height / 2);
 
-    // 畫一個簡單的笑臉
+    // 畫一個大笑臉
     let faceX = width / 2;
-    let faceY = height / 2 + 80;
-    let r = 60;
+    let faceY = height / 2 + 100;
+    let r = 90;
     fill(255, 255, 0);
     stroke(0);
-    strokeWeight(3);
+    strokeWeight(5);
     ellipse(faceX, faceY, r * 2, r * 2);
     // 眼睛
     fill(0);
     noStroke();
-    ellipse(faceX - 20, faceY - 15, 12, 12);
-    ellipse(faceX + 20, faceY - 15, 12, 12);
+    ellipse(faceX - 30, faceY - 25, 20, 20);
+    ellipse(faceX + 30, faceY - 25, 20, 20);
     // 微笑
     noFill();
     stroke(0);
-    strokeWeight(4);
-    arc(faceX, faceY + 10, 50, 30, 0, PI);
+    strokeWeight(7);
+    arc(faceX, faceY + 20, 80, 50, 0, PI);
+  } else if (wrong) {
+    fill(255, 100, 100);
+    textSize(64);
+    text('答錯了！', width / 2, height / 2);
+
+    // 畫一個大哭臉
+    let faceX = width / 2;
+    let faceY = height / 2 + 100;
+    let r = 90;
+    fill(255, 255, 0);
+    stroke(0);
+    strokeWeight(5);
+    ellipse(faceX, faceY, r * 2, r * 2);
+    // 眼睛
+    fill(0);
+    noStroke();
+    ellipse(faceX - 30, faceY - 25, 20, 20);
+    ellipse(faceX + 30, faceY - 25, 20, 20);
+    // 哭臉
+    noFill();
+    stroke(0);
+    strokeWeight(7);
+    arc(faceX, faceY + 50, 80, 50, PI, 0);
+    // 淚水
+    stroke(0, 180, 255);
+    strokeWeight(6);
+    line(faceX - 30, faceY - 10, faceX - 30, faceY + 20);
+    line(faceX + 30, faceY - 10, faceX + 30, faceY + 20);
   }
 }
