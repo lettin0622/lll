@@ -7,6 +7,8 @@ let hands = [];
 let catImg, fishImg;
 let fishes = [];
 let gameClear = false;
+let correctFishIndex = 1; // 0:文學院, 1:教育學院
+let score = false;
 
 function preload() {
   // Initialize HandPose model with flipped video input
@@ -36,8 +38,8 @@ function setup() {
     fishes.push({
       x: random(width * 0.1, width * 0.9),
       y: random(height * 0.2, height * 0.8),
-      w: 60, // 魚的寬度
-      h: 40, // 魚的高度
+      w: 50, // 魚的寬度（小一點）
+      h: 32, // 魚的高度（小一點）
       vx: random([-1, 1]) * random(0.5, 1),
       vy: random([-1, 1]) * random(0.5, 1)
     });
@@ -74,7 +76,9 @@ function draw() {
   image(video, vidX, vidY, vidW, vidH);
 
   // 更新並顯示魚
-  for (let fish of fishes) {
+  textSize(20);
+  for (let i = 0; i < fishes.length; i++) {
+    let fish = fishes[i];
     // 移動
     fish.x += fish.vx;
     fish.y += fish.vy;
@@ -83,6 +87,15 @@ function draw() {
     if (fish.y < titleH || fish.y > height - fish.h) fish.vy *= -1;
     // 顯示
     image(fishImg, fish.x, fish.y, fish.w, fish.h);
+
+    // 在魚頭上加標籤
+    fill(255);
+    stroke(0);
+    strokeWeight(2);
+    let label = i === 0 ? "文學院" : "教育學院";
+    textAlign(CENTER, BOTTOM);
+    text(label, fish.x + fish.w / 2, fish.y - 5);
+    noStroke();
   }
 
   let catX = null, catY = null, catW = 80, catH = 80;
@@ -101,29 +114,58 @@ function draw() {
           catX = x - catW / 2;
           catY = y - catH / 2;
           image(catImg, catX, catY, catW, catH);
+
+          // 在貓頭上方顯示題目
+          fill(0);
+          noStroke();
+          textSize(24);
+          textAlign(CENTER, BOTTOM);
+          text("淡江教科系隸屬?", x, catY - 10);
         }
       }
     }
   }
 
-  // 判斷cat.png是否碰到任一fish.png
-  if (catX !== null && catY !== null && !gameClear) {
-    for (let fish of fishes) {
+  // 判斷cat.png是否碰到正確的fish.png
+  if (catX !== null && catY !== null && !score) {
+    for (let i = 0; i < fishes.length; i++) {
+      let fish = fishes[i];
       if (
         catX < fish.x + fish.w &&
         catX + catW > fish.x &&
         catY < fish.y + fish.h &&
         catY + catH > fish.y
       ) {
-        gameClear = true;
+        if (i === correctFishIndex) {
+          score = true;
+        }
       }
     }
   }
 
-  // 顯示過關訊息
-  if (gameClear) {
-    fill(255, 100, 0);
+  // 顯示過關訊息與笑臉
+  if (score) {
+    fill(255, 200, 0);
     textSize(48);
-    text('過關！', width / 2, height / 2);
+    text('答對！', width / 2, height / 2);
+
+    // 畫一個簡單的笑臉
+    let faceX = width / 2;
+    let faceY = height / 2 + 80;
+    let r = 60;
+    fill(255, 255, 0);
+    stroke(0);
+    strokeWeight(3);
+    ellipse(faceX, faceY, r * 2, r * 2);
+    // 眼睛
+    fill(0);
+    noStroke();
+    ellipse(faceX - 20, faceY - 15, 12, 12);
+    ellipse(faceX + 20, faceY - 15, 12, 12);
+    // 微笑
+    noFill();
+    stroke(0);
+    strokeWeight(4);
+    arc(faceX, faceY + 10, 50, 30, 0, PI);
   }
 }
