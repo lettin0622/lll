@@ -25,6 +25,11 @@ const questions = [
 
 let currentQuestion = 0;
 
+// 狀態控制
+let gameState = "intro"; // intro, countdown, play
+let countdownStart = 0;
+let countdownNum = 3;
+
 function preload() {
   // Initialize HandPose model with flipped video input
   handPose = ml5.handPose({ flipped: true });
@@ -50,6 +55,10 @@ function setup() {
 
   // 初始化兩隻魚的位置與速度
   initFishes();
+
+  // 狀態初始化
+  gameState = "intro";
+  countdownStart = millis();
 }
 
 function initFishes() {
@@ -58,7 +67,7 @@ function initFishes() {
     fishes.push({
       x: random(width * 0.1, width * 0.9),
       y: random(height * 0.2, height * 0.8),
-      w: 120, // 魚大一點
+      w: 120,
       h: 80,
       vx: random([-1, 1]) * random(0.5, 1),
       vy: random([-1, 1]) * random(0.5, 1)
@@ -82,8 +91,42 @@ function draw() {
   fill(0, 60, 120);
   text('ＴＫＵＥＴ小測驗', width / 2, 30);
 
-  // 計算標題高度與間距
-  let titleH = 56 + 30; // 字高+間距
+  // 狀態：intro
+  if (gameState === "intro") {
+    textSize(48);
+    fill(0);
+    text("請讓貓咪吃到正確的魚\n倒數三秒遊戲開始！", width / 2, height / 2 - 40);
+
+    if (millis() - countdownStart > 3000) {
+      gameState = "countdown";
+      countdownStart = millis();
+      countdownNum = 3;
+    }
+    return;
+  }
+
+  // 狀態：countdown
+  if (gameState === "countdown") {
+    let elapsed = millis() - countdownStart;
+    let num = 3 - floor(elapsed / 1000);
+    if (num !== countdownNum) {
+      countdownNum = num;
+    }
+    if (num > 0) {
+      textSize(120);
+      fill(255, 100, 0);
+      text(num, width / 2, height / 2);
+    } else {
+      gameState = "play";
+      score = false;
+      wrong = false;
+      initFishes();
+    }
+    return;
+  }
+
+  // --- 遊戲主畫面 ---
+  let titleH = 56 + 30;
 
   // 計算視訊顯示區域（約視窗 70%，置中，且不與標題碰撞）
   let vidW = width * 0.7;
@@ -167,6 +210,8 @@ function draw() {
               currentQuestion = 0; // 或可改為結束
             }
             initFishes();
+            gameState = "intro";
+            countdownStart = millis();
           }, 1500);
         } else {
           wrong = true;
